@@ -2,36 +2,57 @@ package com.mock.service;
 
 
 import com.mock.dto.LogInDto;
+import com.mock.dto.UserProfileResDto;
+import com.mock.dto.UserReqDto;
 import com.mock.entities.CurrentUserSession;
 import com.mock.entities.User;
 import com.mock.exception.CurrentUserSessionException;
-import com.mock.exception.UserException;
 import com.mock.repository.CurrentSessionRepo;
 import com.mock.repository.UserRepo;
+import javassist.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 
-// Service implementation for User-related operations
 @Service
 public class UserServiceImpl implements UserService {
-
-    // Autowired repositories for user and current user session
     @Autowired
     public CurrentSessionRepo currentSessionRepo;
     @Autowired
     public UserRepo userRepo;
+    @Autowired
+    public PasswordEncoder passwordEncoder;
 
-    // Method to add a new user
     @Override
-    public User addUser(User user) throws UserException {
-        // Check if the user is valid
-        if (user == null) {
-            throw new UserException("User is not valid to add");
-        }
-        // Save the user in the repository
-        return userRepo.save(user);
+    public UserProfileResDto createUser(UserReqDto userReqDto) throws CurrentUserSessionException {
+       User user=new User();
+       user.setUserName(userReqDto.getUserName());
+       user.setEmail(userReqDto.getEmail());
+       String encodedPassword = passwordEncoder.encode(userReqDto.getPassword());
+       user.setPassword(encodedPassword);
+       User savedUser = userRepo.save(user);
+       UserProfileResDto userProfileResDto=new UserProfileResDto();
+       userProfileResDto.setUserName(savedUser.getUserName());
+       userProfileResDto.setEmail(savedUser.getEmail());
+       userProfileResDto.setUserId(savedUser.getUserId());
+       return userProfileResDto;
+    }
+
+    @Override
+    public UserProfileResDto getUserProfile(int userId) throws NotFoundException {
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        UserProfileResDto userProfileResDto = new UserProfileResDto();
+        userProfileResDto.setUserId(user.getUserId());
+        userProfileResDto.setUserName(user.getUserName());
+        userProfileResDto.setEmail(user.getEmail());
+        userProfileResDto.setNumberOfRecipes(user.getRecipes().size());
+        userProfileResDto.setNumberOfBookmarkedRecipes(user.getBookmarkedRecipes().size());
+
+        return userProfileResDto;
     }
 
     // Method to log in a user based on provided credentials

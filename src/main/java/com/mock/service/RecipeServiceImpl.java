@@ -1,26 +1,28 @@
 package com.mock.service;
 
-import com.mock.entities.CurrentUserSession;
-import com.mock.entities.Rating;
-import com.mock.entities.Recipe;
-import com.mock.entities.User;
+import com.mock.dto.IngredientDto;
+import com.mock.dto.RecipeReqDto;
+import com.mock.dto.RecipeResDto;
+import com.mock.entities.*;
 import com.mock.exception.RecipeException;
 import com.mock.exception.UserException;
 import com.mock.repository.CurrentSessionRepo;
 import com.mock.repository.RatingRepo;
 import com.mock.repository.RecipeRepo;
 import com.mock.repository.UserRepo;
+import javassist.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.*;
+import java.util.stream.Collectors;
 
-// Service class providing implementation for Recipe-related operations
+
 @Service
 public class RecipeServiceImpl implements RecipeService {
-    // Autowired repositories for data access
+    Date date = null;
     @Autowired
     public RecipeRepo recipeRepo;
     @Autowired
@@ -32,269 +34,332 @@ public class RecipeServiceImpl implements RecipeService {
 
     // Implementation for creating a new recipe
     @Override
-    public Recipe createRecipe(Recipe recipe, String userAuthenticationId) throws UserException, RecipeException {
-        // Retrieve the current user session based on authentication ID
-        CurrentUserSession cus = currentSessionRepo.findByUserAuthenticationId(userAuthenticationId);
-
-        // Check if the user is logged in
-        if (cus == null) {
-            throw new UserException("You must Login to create Recipe");
-        }
-
-        // Find the user associated with the current session
-        User user = userRepo.findByUserId(cus.getUserId());
-
-        // Check if a valid user is found
-        if (user == null) {
+    public RecipeResDto createRecipe(RecipeReqDto recipeReqDto) throws UserException {
+        Optional<User> optionalUser = userRepo.findById(recipeReqDto.getUserId());
+        if (!optionalUser.isPresent()) {
             throw new UserException("No User Found");
         }
-
-        // Set the user for the recipe and update the user's list of recipes
+        User user = optionalUser.get();
+        Recipe recipe = new Recipe();
         recipe.setUser(user);
-        user.getRecipes().add(recipe);
-        userRepo.save(user);
+        recipe.setTitle(recipeReqDto.getTitle());
+        recipe.setInstruction(recipeReqDto.getInstruction());
+        recipe.setDescription(recipeReqDto.getDescription());
+        recipe.setDifficulty(recipeReqDto.getDifficulty());
+        recipe.setCreatedDate(recipeReqDto.getCreatedDate());
+        Set<IngredientDto> ingredients = recipeReqDto.getIngredients();
+        Set<Ingredient> setOfIngredients = ingredients.stream().map(ingredientDto1 -> {
+            Ingredient ingredient = new Ingredient();
+            ingredient.setName(ingredientDto1.getName());
+            ingredient.setQuantity(ingredientDto1.getQuantity());
+            return ingredient;
+        }).collect(Collectors.toSet());
+        recipe.setIngredients(setOfIngredients);
+        Recipe save = recipeRepo.save(recipe);
 
-        // Save the recipe to the repository
-        recipeRepo.save(recipe);
-
-        // Create a new Rating for the recipe and initialize with default values
         Rating rate = new Rating();
-        rate.setRecipe(recipe);
+        rate.setRecipe(save);
         rate.setNoOfRaters(0);
-        rate.setRating(0);
+        rate.setRatingValue(0);
+        recipe.setRating(rate);
 
-        // Save the rating to the repository
         ratingRepo.save(rate);
+        Date createdDate = save.getCreatedDate();
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        String date = simpleDateFormat.format(createdDate);
 
-        // Return the saved recipe
-        return recipeRepo.save(recipe);
+        RecipeResDto recipeResDto = new RecipeResDto();
+        recipeResDto.setTitle(save.getTitle());
+        Set<IngredientDto> ingredientDtoSet = save.getIngredients().stream().map(ingredient -> {
+            IngredientDto ingredientDto = new IngredientDto();
+            ingredientDto.setName(ingredient.getName());
+            ingredientDto.setQuantity(ingredient.getQuantity());
+            return ingredientDto;
+        }).collect(Collectors.toSet());
+        recipeResDto.setIngredients(ingredientDtoSet);
+        recipeResDto.setDescription(save.getDescription());
+        recipeResDto.setInstruction(save.getInstruction());
+        recipeResDto.setDifficulty(save.getDifficulty());
+        recipeResDto.setCreatedDate(save.getCreatedDate());
+        recipeResDto.setCreatedDate(save.getCreatedDate());
+
+        return recipeResDto;
     }
 
-
-    // Implementation for retrieving a recipe by ID
     @Override
-    public Recipe getRecipe(int recipeId) throws RecipeException {
-        // Retrieve the recipe from the repository based on the given ID
-        Optional<Recipe> orecipe = recipeRepo.findById(recipeId);
-
-        // Check if the recipe is present in the repository
-        if (!orecipe.isPresent()) {
-            // Throw an exception if the recipe is not found
-            throw new RecipeException("No recipe Found");
+    public RecipeResDto getRecipe(int recipeId) throws RecipeException {
+        Optional<Recipe> recipeById = recipeRepo.findById(recipeId);
+        if (!recipeById.isPresent()) {
+            throw new RecipeException("Recipe with Id '" + recipeById + "' not found");
         }
 
-        // Return the retrieved recipe
-        return orecipe.get();
+
+        return convertToDto(recipeById.get());
+
     }
 
-    @Override
-    public Recipe getRecipeByName(String recipeName) throws RecipeException {
-        return recipeRepo.findByName(recipeName);
+    private RecipeResDto convertDto(Recipe recipe) {
+        RecipeResDto dto1 = new RecipeResDto();
+        dto1.setTitle(recipe.getTitle());
+        dto1.setDescription(recipe.getDescription());
+        dto1.setInstruction(recipe.getInstruction());
+        dto1.setDifficulty(recipe.getDifficulty());
+        dto1.setCreatedDate(recipe.getCreatedDate());
+        Set<IngredientDto> ingredientDtos = recipe.getIngredients().stream()
+                .map(this::convertIngredientToDtos1)
+                .collect(Collectors.toSet());
+        dto1.setIngredients(ingredientDtos);
+
+        return dto1;
+    }
+
+    private IngredientDto convertIngredientToDtos1(Ingredient ingredient) {
+        IngredientDto ingredientDto = new IngredientDto();
+        ingredientDto.setName(ingredient.getName());
+        ingredientDto.setQuantity(ingredient.getQuantity());
+        return ingredientDto;
     }
 
 
-    // Implementation for retrieving all recipes
     @Override
-    public List<Recipe> getAllRecipe() throws RecipeException {
-        // Retrieve all recipes from the repository
+    public RecipeResDto getRecipeByTitle(String recipeTitle) throws RecipeException {
+        Optional<Recipe> recipeByName = recipeRepo.findByTitle(recipeTitle);
+        if (!recipeByName.isPresent()) {
+            throw new RecipeException("Recipe with title '" + recipeTitle + "' not found");
+        }
+        return convertToDto(recipeByName.get());
+    }
+
+    private RecipeResDto convertToDto(Recipe recipe) {
+        RecipeResDto dto = new RecipeResDto();
+        dto.setTitle(recipe.getTitle());
+        dto.setDescription(recipe.getDescription());
+        dto.setInstruction(recipe.getInstruction());
+        dto.setDifficulty(recipe.getDifficulty());
+        dto.setCreatedDate(recipe.getCreatedDate());
+        Set<IngredientDto> ingredientDtos = recipe.getIngredients().stream()
+                .map(this::convertIngredientToDtos)
+                .collect(Collectors.toSet());
+        dto.setIngredients(ingredientDtos);
+
+        return dto;
+    }
+
+    private IngredientDto convertIngredientToDtos(Ingredient ingredient) {
+        IngredientDto ingredientDto = new IngredientDto();
+        ingredientDto.setName(ingredient.getName());
+        ingredientDto.setQuantity(ingredient.getQuantity());
+        return ingredientDto;
+    }
+
+
+    @Override
+    public List<RecipeResDto> getAllRecipe() throws RecipeException {
         List<Recipe> recipes = recipeRepo.findAll();
-
-        // Check if the list of recipes is empty
         if (recipes.isEmpty()) {
-            // Throw an exception if no recipes are found
             throw new RecipeException("No recipes found");
         }
-
-        // Return the list of retrieved recipes
-        return recipes;
+        return recipes.stream()
+                .map(this::convertToDtos)
+                .collect(Collectors.toList());
     }
 
-
-    // Implementation for updating a recipe
-    @Override
-    public Recipe updateRecipe(Recipe recipe, String userAuthenticationId) throws UserException, RecipeException {
-        // Retrieve the current user session based on authentication ID
-        CurrentUserSession cus = currentSessionRepo.findByUserAuthenticationId(userAuthenticationId);
-
-        // Check if the user is logged in
-        if (cus == null) {
-            throw new UserException("You must Login to update Recipe");
-        }
-
-        // Find the user associated with the current session
-        User user = userRepo.findByUserId(cus.getUserId());
-
-        // Check if a valid user is found
-        if (user == null) {
-            throw new UserException("No User Found");
-        }
-
-        // Find the existing recipe based on the provided ID
-        Optional<Recipe> exRecipe = recipeRepo.findById(recipe.getId());
-
-        // Check if the existing recipe is present
-        if (!exRecipe.isPresent()) {
-            throw new RecipeException("Recipe not found by this id");
-        }
-
-        // Verify that the user is the owner of the existing recipe
-        int userId = exRecipe.get().getUser().getUserId();
-        if (user.getUserId() != userId) {
-            throw new UserException("Not a valid user to update the recipe");
-        }
-
-        // Replace the existing recipe in the user's list with the updated one
-        Recipe existing = null;
-        Set<Recipe> set = user.getRecipes();
-        for (Recipe r : set) {
-            if (r.getId() == exRecipe.get().getId()) {
-                existing = r;
-            }
-        }
-        set.remove(existing);
-        set.add(recipe);
-        user.setRecipes(set);
-
-        // Save the updated user information
-        userRepo.save(user);
-
-        // Save the updated recipe
-        return recipeRepo.save(recipe);
+    private RecipeResDto convertToDtos(Recipe recipe) {
+        RecipeResDto dto = new RecipeResDto();
+        dto.setTitle(recipe.getTitle());
+        dto.setDescription(recipe.getDescription());
+        dto.setInstruction(recipe.getInstruction());
+        dto.setDifficulty(recipe.getDifficulty());
+        dto.setCreatedDate(recipe.getCreatedDate());
+        Set<IngredientDto> ingredientDtos = recipe.getIngredients().stream()
+                .map(this::convertIngredientToDto)
+                .collect(Collectors.toSet());
+        dto.setIngredients(ingredientDtos);
+        return dto;
     }
 
-
-    // Implementation for deleting a recipe
-    @Override
-    public Recipe deleteRecipe(Recipe recipe, String userAuthenticationId) throws UserException, RecipeException {
-        // Retrieve the current user session based on authentication ID
-        CurrentUserSession cus = currentSessionRepo.findByUserAuthenticationId(userAuthenticationId);
-
-        // Check if the user is logged in
-        if (cus == null) {
-            throw new UserException("You must Login to update Recipe");
-        }
-
-        // Find the user associated with the current session
-        User user = userRepo.findByUserId(cus.getUserId());
-
-        // Check if a valid user is found
-        if (user == null) {
-            throw new UserException("No User Found");
-        }
-
-        // Find the existing recipe based on the provided ID
-        Optional<Recipe> exRecipe = recipeRepo.findById(recipe.getId());
-
-        // Check if the existing recipe is present
-        if (!exRecipe.isPresent()) {
-            throw new RecipeException("Recipe not found by this id");
-        }
-
-        // Verify that the user is the owner of the existing recipe
-        int userId = exRecipe.get().getUser().getUserId();
-        if (user.getUserId() != userId) {
-            throw new UserException("Not valid user to update");
-        }
-
-        // Remove the existing recipe from the user's list
-        Recipe existing = null;
-        Set<Recipe> set = user.getRecipes();
-        for (Recipe r : set) {
-            if (r.getId() == exRecipe.get().getId()) {
-                existing = r;
-            }
-        }
-        set.remove(existing);
-
-        // Save the updated user information
-        user.setRecipes(set);
-        userRepo.save(user);
-
-        // Delete the recipe from the repository
-        recipeRepo.delete(recipe);
-
-        // Return the deleted recipe
-        return recipe;
+    private IngredientDto convertIngredientToDto(Ingredient ingredient) {
+        IngredientDto ingredientDto = new IngredientDto();
+        ingredientDto.setName(ingredient.getName());
+        ingredientDto.setQuantity(ingredient.getQuantity());
+        return ingredientDto;
     }
 
-
-    // Implementation for rating a recipe
     @Override
-    public Rating rateRecipe(int recipeid, int rate) throws RecipeException {
-        // Check if the rating is greater than 5
-        if (rate > 5) {
-            throw new RecipeException("Rating should not be greater than 5");
+    public void deleteRecipe(int recipeId) throws UserException, RecipeException {
+        Optional<Recipe> recipeOptional = recipeRepo.findById(recipeId);
+
+        if (recipeOptional.isPresent()) {
+            recipeRepo.deleteById(recipeId);
+        } else {
+            throw new RecipeException("Recipe with ID '" + recipeId + "' not found");
         }
+    }
 
-        // Find the existing recipe based on the provided ID
-        Optional<Recipe> exRecipe = recipeRepo.findById(recipeid);
+    @Override
+    public Rating rateRecipe(int recipeId, int ratingValue) throws RecipeException, NotFoundException {
 
-        // Check if the existing recipe is present
-        if (!exRecipe.isPresent()) {
-            throw new RecipeException("Recipe not found by this id");
-        }
-
-        // Retrieve the recipe and its associated rating
-        Recipe recipe = exRecipe.get();
+        Recipe recipe = recipeRepo.findById(recipeId).orElseThrow(() -> new NotFoundException("Recipe not found"));
         Rating rating = recipe.getRating();
+        if (rating == null) {
+            rating = new Rating();
+            rating.setNoOfRaters(0);
+            rating.setRatingValue(0);
+        }
+        int totalRaters = rating.getNoOfRaters();
+        int totalRating = rating.getRatingValue();
 
-        // Calculate the new rating based on the provided rate
-        rating.setRating(((rating.getNoOfRaters() * rating.getRating()) + rate) / (rating.getNoOfRaters() + 1));
-        rating.setNoOfRaters(rating.getNoOfRaters() + 1);
+        totalRaters++;
+        totalRating += ratingValue;
+        int newRatingValue = totalRating / totalRaters;
 
-        // Save the updated rating to the repository
-        ratingRepo.save(rating);
+        rating.setNoOfRaters(totalRaters);
+        rating.setRatingValue(newRatingValue);
 
-        // Return the updated rating
+        recipe.setRating(rating);
+
         return rating;
+
     }
 
-
-    // Implementation for bookmarking a recipe
     @Override
-    public Recipe bookMarkRecipe(String userAuthenticationId, int recipeId) throws UserException, RecipeException {
-        // Retrieve the current user session based on authentication ID
-        CurrentUserSession cus = currentSessionRepo.findByUserAuthenticationId(userAuthenticationId);
+    public void bookmarkRecipe(int recipeId, int userId) throws NotFoundException {
+        Recipe recipe = recipeRepo.findById(recipeId)
+                .orElseThrow(() -> new NotFoundException("Recipe not found"));
 
-        // Find the existing recipe based on the provided ID
-        Optional<Recipe> exRecipe = recipeRepo.findById(recipeId);
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
-        // Check if the existing recipe is present
-        if (!exRecipe.isPresent()) {
-            throw new RecipeException("Recipe not found by this id");
-        }
-
-        // Retrieve the recipe
-        Recipe recipe = exRecipe.get();
-
-        // Check if the user is logged in
-        if (cus == null) {
-            throw new UserException("You must Login to bookmark this Recipe");
-        }
-
-        // Find the user associated with the current session
-        User user = userRepo.findByUserId(cus.getUserId());
-
-        // Check if a valid user is found
-        if (user == null) {
-            throw new UserException("No User Found");
-        }
-
-        // Add the recipe to the user's bookmarked recipes
-        Set<Recipe> set = user.getBookmarkedRecipes();
-        set.add(recipe);
-        user.setBookmarkedRecipes(set);
-
-        // Save the updated user information
+        user.getBookmarkedRecipes().add(recipe);
         userRepo.save(user);
-
-        // Add the user to the recipe's list of bookmarked users
-        Set<User> users = recipe.getBookmarkedUsers();
-        users.add(user);
-        recipe.setBookmarkedUsers(users);
-
-        // Save the updated recipe
-        return recipeRepo.save(recipe);
     }
+
+
+    @Override
+    public RecipeResDto updateRecipe(int recipeId, RecipeReqDto recipeReqDto) throws UserException, RecipeException, NotFoundException {
+        Recipe existingRecipe = recipeRepo.findById(recipeId).orElse(null);
+        if (existingRecipe == null) {
+            throw new NotFoundException("Recipe not found with id: " + recipeId);
+        }
+        existingRecipe.setTitle(recipeReqDto.getTitle());
+        existingRecipe.setDescription(recipeReqDto.getDescription());
+        Set<IngredientDto> ingredients = recipeReqDto.getIngredients();
+        Set<Ingredient> setOfIngredients = ingredients.stream().map(ingredientDto1 -> {
+            Ingredient ingredient = new Ingredient();
+            ingredient.setName(ingredientDto1.getName());
+            ingredient.setQuantity(ingredientDto1.getQuantity());
+            return ingredient;
+        }).collect(Collectors.toSet());
+        existingRecipe.setIngredients(setOfIngredients);
+        existingRecipe.setInstruction(recipeReqDto.getInstruction());
+        existingRecipe.setDifficulty(recipeReqDto.getDifficulty());
+        existingRecipe.setCreatedDate(recipeReqDto.getCreatedDate());
+        Recipe savedRecipe = recipeRepo.save(existingRecipe);
+
+        return convertToRecipeResDto(savedRecipe);
+    }
+
+    private RecipeResDto convertToRecipeResDto(Recipe recipe) {
+        RecipeResDto recipeResDto = new RecipeResDto();
+        recipeResDto.setTitle(recipe.getTitle());
+        recipeResDto.setDescription(recipe.getDescription());
+        Set<IngredientDto> ingredientDtoSet = recipe.getIngredients().stream().map(ingredient -> {
+            IngredientDto ingredientDto = new IngredientDto();
+            ingredientDto.setName(ingredient.getName());
+            ingredientDto.setQuantity(ingredient.getQuantity());
+            return ingredientDto;
+        }).collect(Collectors.toSet());
+        recipeResDto.setIngredients(ingredientDtoSet);
+        recipeResDto.setInstruction(recipe.getInstruction());
+        recipeResDto.setDifficulty(recipe.getDifficulty());
+        recipeResDto.setCreatedDate(recipe.getCreatedDate());
+        return recipeResDto;
+    }
+
 
 }
+
+
+//
+//
+//
+//
+//    // Implementation for rating a recipe
+//    @Override
+//    public Rating rateRecipe(int recipeid, int rate) throws RecipeException {
+//        // Check if the rating is greater than 5
+//        if (rate > 5) {
+//            throw new RecipeException("Rating should not be greater than 5");
+//        }
+//
+//        // Find the existing recipe based on the provided ID
+//        Optional<Recipe> exRecipe = recipeRepo.findById(recipeid);
+//
+//        // Check if the existing recipe is present
+//        if (!exRecipe.isPresent()) {
+//            throw new RecipeException("Recipe not found by this id");
+//        }
+//
+//        // Retrieve the recipe and its associated rating
+//        Recipe recipe = exRecipe.get();
+//        Rating rating = recipe.getRating();
+//
+//        // Calculate the new rating based on the provided rate
+//        rating.setRating(((rating.getNoOfRaters() * rating.getRating()) + rate) / (rating.getNoOfRaters() + 1));
+//        rating.setNoOfRaters(rating.getNoOfRaters() + 1);
+//
+//        // Save the updated rating to the repository
+//        ratingRepo.save(rating);
+//
+//        // Return the updated rating
+//        return rating;
+//    }
+//
+//
+//    // Implementation for bookmarking a recipe
+//    @Override
+//    public Recipe bookMarkRecipe(String userAuthenticationId, int recipeId) throws UserException, RecipeException {
+//        // Retrieve the current user session based on authentication ID
+//        CurrentUserSession cus = currentSessionRepo.findByUserAuthenticationId(userAuthenticationId);
+//
+//        // Find the existing recipe based on the provided ID
+//        Optional<Recipe> exRecipe = recipeRepo.findById(recipeId);
+//
+//        // Check if the existing recipe is present
+//        if (!exRecipe.isPresent()) {
+//        lculate new ratin    throw new RecipeException("Recipe not found by this id");
+//        }
+//
+//        // Retrieve the recipe
+//        Recipe recipe = exRecipe.get();
+//
+//        // Check if the user is logged in
+//        if (cus == null) {
+//            throw new UserException("You must Login to bookmark this Recipe");
+//        }
+//
+//        // Find the user associated with the current session
+//        User user = userRepo.findByUserId(cus.getUserId());
+//
+//        // Check if a valid user is found
+//        if (user == null) {
+//            throw new UserException("No User Found");
+//        }
+//
+//        // Add the recipe to the user's bookmarked recipes
+//        Set<Recipe> set = user.getBookmarkedRecipes();
+//        set.add(recipe);
+//        user.setBookmarkedRecipes(set);
+//
+//        // Save the updated user information
+//        userRepo.save(user);
+//
+//        // Add the user to the recipe's list of bookmarked users
+//        Set<User> users = recipe.getBookmarkedUsers();
+//        users.add(user);
+//        recipe.setBookmarkedUsers(users);
+//
+//        // Save the updated recipe
+//        return recipeRepo.save(recipe);
+//    }
+

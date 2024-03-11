@@ -2,22 +2,35 @@ package com.mock.entities;
 
 import java.time.LocalDateTime;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-// Define an entity class representing the current user session
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
+@Setter
+@Getter
 @Entity
+@AllArgsConstructor
+@NoArgsConstructor
+@Table(name = "CurrentUserSession")
 public class CurrentUserSession {
 
-	// Primary key for the entity
 	@Id
 	@Column(unique = true)
 	private Integer userId;
 
+	// Setter method for setting the user authentication ID (UUID)
+	// Getter method for retrieving the user authentication ID (UUID)
 	// Unique identifier for user authentication
 	private String userAuthenticationId;
 
+	// Setter method for setting the timestamp of the current session
+	// Getter method for retrieving the timestamp of the current session
 	// Timestamp indicating the time of the current session
 	private LocalDateTime localDateTime;
 
@@ -31,38 +44,4 @@ public class CurrentUserSession {
 		this.localDateTime = LocalDateTime.now();
 	}
 
-	// Default constructor required for JPA
-	public CurrentUserSession() {
-		// TODO Auto-generated constructor stub
-	}
-
-	// Getter method for retrieving the user ID
-	public Integer getUserId() {
-		return userId;
-	}
-
-	// Setter method for setting the user ID
-	public void setUserId(Integer userId) {
-		this.userId = userId;
-	}
-
-	// Getter method for retrieving the user authentication ID (UUID)
-	public String getUserAuthenticationId() {
-		return userAuthenticationId;
-	}
-
-	// Setter method for setting the user authentication ID (UUID)
-	public void setUserAuthenticationId(String userAuthenticationId) {
-		this.userAuthenticationId = userAuthenticationId;
-	}
-
-	// Getter method for retrieving the timestamp of the current session
-	public LocalDateTime getLocalDateTime() {
-		return localDateTime;
-	}
-
-	// Setter method for setting the timestamp of the current session
-	public void setLocalDateTime(LocalDateTime localDateTime) {
-		this.localDateTime = localDateTime;
-	}
 }

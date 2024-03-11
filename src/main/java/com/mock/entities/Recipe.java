@@ -1,71 +1,55 @@
 package com.mock.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
+import javax.persistence.*;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
 // Define an entity class representing a Recipe
+@Setter
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
 @Entity
+@Table(name = "Recipe")
 public class Recipe {
 
-    // Primary key for the entity, auto-generated using identity strategy
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
-
-    // Title of the recipe, marked with @NotBlank validation
-    @jakarta.validation.constraints.NotBlank
+    @NotBlank
+    @NotNull
     private String title;
-
-    // Description of the recipe, marked with @NotBlank validation
     @NotBlank
     private String description;
-
-    // Set of ingredients for the recipe, stored as an ElementCollection of Incredient objects
     @ElementCollection
     @Embedded
     private Set<Ingredient> ingredients;
-
-    // Instruction for preparing the recipe
     private String instruction;
-
+    @ElementCollection
+    @Embedded
     private List<Comment> commentList;
-
-    // Time required to prepare the recipe, validated using @Pattern
-//    @Pattern(regexp = "^([0-2][0-3]):([0-5][0-9]):([0-5][0-9])$")
-    @Temporal(TemporalType.TIME)
-    private LocalDateTime time;
-
-    // Difficulty level of the recipe
+    private Date createdDate;
     private String difficulty;
-
-    // Reference to the User who created the recipe, marked with @JsonIgnore to avoid circular serialization
     @JsonIgnore
     @ManyToOne(fetch = FetchType.EAGER)
     private User user;
-
-    // Set of Users who have bookmarked or marked the recipe, marked with @JsonIgnore
     @JsonIgnore
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.EAGER, mappedBy = "bookmarkedRecipes")
     private Set<User> bookmarkedUsers;
-
-    // Rating for the recipe, stored as a OneToOne relationship with the Rating entity
     @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private Rating rating;
-
-    public List<Comment> getCommentList() {
-        return commentList;
-    }
-
-    // Default constructor required for JPA
-    public Recipe() {
-        // TODO Auto-generated constructor stub
-    }
 
     // Override hashCode and equals methods based on the recipe's ID for proper comparison
     @Override
@@ -73,10 +57,6 @@ public class Recipe {
         return Objects.hash(id);
     }
 
-
-    public void setCommentList(List<Comment> commentList) {
-        this.commentList = commentList;
-    }
 
     @Override
     public boolean equals(Object obj) {
@@ -90,84 +70,4 @@ public class Recipe {
         return id == other.id;
     }
 
-    // Getter and setter methods for various properties of the recipe
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public Set<Ingredient> getIngredients() {
-        return ingredients;
-    }
-
-    public void setIngredients(Set<Ingredient> ingredients) {
-        this.ingredients = ingredients;
-    }
-
-    public String getInstruction() {
-        return instruction;
-    }
-
-    public void setInstruction(String instruction) {
-        this.instruction = instruction;
-    }
-
-    public LocalDateTime getTime() {
-        return time;
-    }
-
-    public void setTime(LocalDateTime time) {
-        this.time = time;
-    }
-
-    public String getDifficulty() {
-        return difficulty;
-    }
-
-    public void setDifficulty(String difficulty) {
-        this.difficulty = difficulty;
-    }
-
-    public Rating getRating() {
-        return rating;
-    }
-
-    public void setRating(Rating rating) {
-        this.rating = rating;
-    }
-
-    public Set<User> getBookmarkedUsers() {
-        return bookmarkedUsers;
-    }
-
-    public void setBookmarkedUsers(Set<User> bookmarkedUsers) {
-        this.bookmarkedUsers = bookmarkedUsers;
-    }
 }

@@ -7,6 +7,6 @@ import com.mock.entities.User;
 
 @Repository
 public interface UserRepo extends JpaRepository<User, Integer> {
-	public User findByUserName(String userName);
-	public User findByUserId(int userId);
+
+    User findByUserName(String username);
 }

@@ -1,25 +1,23 @@
 package com.mock.entities;
 
-import java.util.Objects;
 
-import jakarta.persistence.Embeddable;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-// Define an embeddable class representing an ingredient
+import javax.persistence.Embeddable;
+import javax.persistence.Table;
+
 @Setter
 @Getter
 @Embeddable
+@AllArgsConstructor
+@NoArgsConstructor
+@Table(name = "Ingredient")
 public class Ingredient {
 
 	private String name;
 	private String quantity;
-
-	// Constructor to initialize the Incredient with name and quantity
-	public Ingredient(String name, String quantity) {
-		super();
-		this.name = name;
-		this.quantity = quantity;
-	}
 
 }

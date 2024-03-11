@@ -1,18 +1,23 @@
 package com.mock.entities;
 
-import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.Date;
+
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "Comment")
+
 public class Comment {
 
     @Id
@@ -29,8 +34,7 @@ public class Comment {
 
     private String content;
 
-    @Temporal(TemporalType.DATE)
-    private LocalDateTime createdAt;
 
-
+    @CreatedDate
+    private Date createdAt;
 }

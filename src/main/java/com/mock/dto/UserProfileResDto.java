@@ -9,8 +9,12 @@ import lombok.Setter;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class LogInDto {
+public class UserProfileResDto {
 
-    private String username;
-    private String password;
+    private int userId;
+    private String userName;
+    private String email;
+    private int numberOfRecipes;
+    private int numberOfBookmarkedRecipes;
+
 }

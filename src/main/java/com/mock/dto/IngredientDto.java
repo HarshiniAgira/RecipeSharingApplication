@@ -9,8 +9,8 @@ import lombok.Setter;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class LogInDto {
+public class IngredientDto {
 
-    private String username;
-    private String password;
+    private String name;
+    private String quantity;
 }
