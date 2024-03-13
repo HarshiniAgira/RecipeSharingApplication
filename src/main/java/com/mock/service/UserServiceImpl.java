@@ -57,9 +57,9 @@ public class UserServiceImpl implements UserService {
 
     // Method to log in a user based on provided credentials
     @Override
-    public CurrentUserSession logIn(LogInDto lid) throws CurrentUserSessionException {
+    public CurrentUserSession logIn(LogInDto logInDto) throws CurrentUserSessionException {
         // Find the user by username
-        User user = userRepo.findByUserName(lid.getUsername());
+        User user = userRepo.findByUserName(logInDto.getUsername());
 
         // Check if the user is found
         if (user == null) {
@@ -67,13 +67,14 @@ public class UserServiceImpl implements UserService {
         }
 
         // Check if the user is already logged in
-        CurrentUserSession ccus = currentSessionRepo.findByUserId(user.getUserId());
-        if (ccus != null) {
+        CurrentUserSession currentUserSession = currentSessionRepo.findByUserId(user.getUserId());
+        currentUserSession.setLoggedIn(true);
+        if (currentUserSession != null) {
             throw new CurrentUserSessionException("User is Already logged In");
         }
 
         // Check if the provided password is valid
-        if (!user.getPassword().equals(lid.getPassword())) {
+        if (!user.getPassword().equals(logInDto.getPassword())) {
             throw new CurrentUserSessionException("Credentials are not valid");
         }
 
@@ -81,13 +82,14 @@ public class UserServiceImpl implements UserService {
         String userAuthenticationId = user.getUserName() + user.getUserId();
 
         // Create a new current user session
-        CurrentUserSession cus = new CurrentUserSession();
-        cus.setUserId(user.getUserId());
-        cus.setUserAuthenticationId(userAuthenticationId);
-        cus.setLocalDateTime(LocalDateTime.now());
+        CurrentUserSession currentUserSession1 = new CurrentUserSession();
+        currentUserSession1.setUserId(user.getUserId());
+        currentUserSession1.setUserAuthenticationId(userAuthenticationId);
+        currentUserSession1.setLocalDateTime(LocalDateTime.now());
 
         // Save the current user session in the repository
-        return currentSessionRepo.save(cus);
+
+        return currentSessionRepo.save(currentUserSession1);
     }
 
     // Method to log out a user based on authentication ID
@@ -101,8 +103,10 @@ public class UserServiceImpl implements UserService {
             throw new CurrentUserSessionException("User is not logged in currently");
         }
 
-        // Delete the current user session
-        currentSessionRepo.delete(currentUserSession);
+
+        // Update the logout status in the current user session
+        currentUserSession.setLoggedIn(false);
+        currentSessionRepo.save(currentUserSession);
 
         // Return true to indicate successful logout
         return true;

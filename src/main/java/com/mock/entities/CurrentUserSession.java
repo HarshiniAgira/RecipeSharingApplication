@@ -23,15 +23,8 @@ public class CurrentUserSession {
 	@Id
 	@Column(unique = true)
 	private Integer userId;
-
-	// Setter method for setting the user authentication ID (UUID)
-	// Getter method for retrieving the user authentication ID (UUID)
-	// Unique identifier for user authentication
 	private String userAuthenticationId;
-
-	// Setter method for setting the timestamp of the current session
-	// Getter method for retrieving the timestamp of the current session
-	// Timestamp indicating the time of the current session
+	private boolean loggedIn;
 	private LocalDateTime localDateTime;
 
 	// Constructor to initialize the CurrentUserSession with user ID and authentication ID

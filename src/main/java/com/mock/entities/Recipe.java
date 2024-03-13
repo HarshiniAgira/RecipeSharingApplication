@@ -37,9 +37,9 @@ public class Recipe {
     @Embedded
     private Set<Ingredient> ingredients;
     private String instruction;
-    @ElementCollection
-    @Embedded
-    private List<Comment> commentList;
+//    @ElementCollection
+//    @Embedded
+//    private List<Comment> commentList;
     private Date createdDate;
     private String difficulty;
     @JsonIgnore

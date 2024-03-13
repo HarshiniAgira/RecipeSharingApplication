@@ -22,7 +22,7 @@ public class Comment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private int id;
 
     @ManyToOne
     @JoinColumn(name = "user_id")
@@ -36,5 +36,5 @@ public class Comment {
 
 
     @CreatedDate
-    private Date createdAt;
+    private Date commentCreatedAt;
 }

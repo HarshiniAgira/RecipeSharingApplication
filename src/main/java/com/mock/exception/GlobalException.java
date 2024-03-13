@@ -14,9 +14,9 @@ import java.time.LocalDateTime;
 public class GlobalException {
 
     @ExceptionHandler(RecipeException.class)
-    public ResponseEntity<MyErrorDetails> recipeException(RecipeException ie, WebRequest req) {
+    public ResponseEntity<MyErrorDetails> recipeException(RecipeException recipeException,WebRequest req) {
         System.out.println("inside myHandler method...");
-        MyErrorDetails myErrorDetails = new MyErrorDetails(LocalDateTime.now(), ie.getMessage(), req.getDescription(false));
+        MyErrorDetails myErrorDetails = new MyErrorDetails(LocalDateTime.now(), recipeException.getMessage(),req.getDescription(false));
         ResponseEntity<MyErrorDetails> responseEntity = new ResponseEntity<>(myErrorDetails, HttpStatus.BAD_REQUEST);
         return responseEntity;
     }
